@@ -1,4 +1,3 @@
-from email import message
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -10,29 +9,23 @@ import datetime
 from django.conf import settings
 
 
-
-
-
 @csrf_exempt
 def register_user(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        
-    
+
         if User.objects(email=data['email']).first():
             return JsonResponse({'error': 'Email already exists'}, status=400)
 
-       
         hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
 
- 
         user = User(
             name=data['name'],
             email=data['email'],
             password=hashed_password.decode('utf-8')
         )
         user.save()
-     
+
         return JsonResponse(
             {
                 'status': 201,
@@ -40,9 +33,8 @@ def register_user(request):
                 'id': str(user.id),
                 'name': user.name,
                 'email': user.email,
-                'password': user.password
-
             },
+            status=201,
         )
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)

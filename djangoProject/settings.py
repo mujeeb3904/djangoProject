@@ -17,7 +17,7 @@ DEBUG = True
 PORT = int(os.getenv('PORT', 8000))
 print(f"Server Running on: {PORT}")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 # Installed apps
 INSTALLED_APPS = [
