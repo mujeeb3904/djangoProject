@@ -40,3 +40,21 @@ def create_blog(request):
         'description': blog.description,
         'content': blog.content,
     }, status=201)
+
+@csrf_exempt
+def get_blogs(request): 
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    blogs = Blog.objects.all()
+    return JsonResponse({
+        'status': 200,
+        'message': 'Blogs fetched successfully',
+        'blogs': [{
+            'id': str(blog.id),
+            'createdById': str(blog.createdBy.id),
+            'title': blog.title,
+            'description': blog.description,
+            'content': blog.content,
+        } for blog in blogs]
+    }, status=200)
+
