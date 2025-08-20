@@ -1,60 +1,115 @@
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from .models import Blog
 from User.models import User
 import json
-
+import datetime
 
 @csrf_exempt
+@require_http_methods(["POST"])
 def create_blog(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    user_id = request.jwt_user_id
+    if not user_id:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
 
     try:
-        data = json.loads(request.body or b"{}")
+        data = json.loads(request.body)
+        
+        # Validate required fields
+        required_fields = ['title', 'description', 'content']
+        for field in required_fields:
+            if not data.get(field):
+                return JsonResponse({'error': f'{field} is required'}, status=400)
+        
+        # Get user
+        user = User.objects.get(id=user_id)
+        
+        # Create blog
+        blog = Blog(
+            createdBy=user,
+            title=data['title'],
+            description=data['description'],
+            content=data['content']
+        )
+        blog.save()
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Blog created successfully',
+            'data': {
+                'id': str(blog.id),
+                'title': blog.title,
+                'description': blog.description,
+                'content': blog.content,
+                'created_by': {
+                    'id': str(user.id),
+                    'name': user.name
+                },
+                'created_at': blog.created_at.isoformat()
+            }
+        }, status=201)
+        
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': 'Internal server error'}, status=500)
 
-    user_id = getattr(request, 'jwt_user_id', None)
+@require_http_methods(["GET"])
+def get_blogs(request):
+    try:
+        blogs = Blog.objects.all()
+        blogs_data = []
+        
+        for blog in blogs:
+            blogs_data.append({
+                'id': str(blog.id),
+                'title': blog.title,
+                'description': blog.description,
+                'content': blog.content,
+                'created_by': {
+                    'id': str(blog.createdBy.id),
+                    'name': blog.createdBy.name
+                },
+                'created_at': blog.created_at.isoformat(),
+                'updated_at': blog.updated_at.isoformat()
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Blogs fetched successfully',
+            'data': blogs_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
+@require_http_methods(["GET"])
+def get_user_blogs(request):
+    user_id = request.jwt_user_id
     if not user_id:
-        return JsonResponse({'error': 'Unauthorized: missing or invalid token'}, status=401)
-
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    
     try:
         user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return JsonResponse({'error': 'User not found for provided token'}, status=404)
-
-    blog = Blog.objects.create(
-        createdBy=user,
-        title=data.get('title', ''),
-        description=data.get('description', ''),
-        content=data.get('content', '')
-    )
-
-    return JsonResponse({
-        'status': 201,
-        'message': 'Blog created successfully',
-        'id': str(blog.id),
-        'createdById': str(user.id),
-        'title': blog.title,
-        'description': blog.description,
-        'content': blog.content,
-    }, status=201)
-
-@csrf_exempt
-def get_blogs(request): 
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
-    blogs = Blog.objects.all()
-    return JsonResponse({
-        'status': 200,
-        'message': 'Blogs fetched successfully',
-        'blogs': [{
+        blogs = Blog.objects(createdBy=user)
+        
+        blogs_data = [{
             'id': str(blog.id),
-            'createdById': str(blog.createdBy.id),
             'title': blog.title,
             'description': blog.description,
             'content': blog.content,
+            'created_at': blog.created_at.isoformat(),
+            'updated_at': blog.updated_at.isoformat()
         } for blog in blogs]
-    }, status=200)
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': blogs_data
+        })
+        
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
 

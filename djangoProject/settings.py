@@ -66,20 +66,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "djangoProject.wsgi.application"
 
-# Database configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 
-# MongoDB connection
 try:
     import mongoengine
     mongoengine.connect(
         db="django",
-        host=os.getenv('DATABASE_URL')
+        host=os.getenv('DATABASE_URL', 'mongodb://localhost:27017/')
     )
     print("MongoDB connected successfully.")
 except Exception as e:
