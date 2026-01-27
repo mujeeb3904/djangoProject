@@ -10,7 +10,7 @@ load_dotenv()
 port = os.getenv('PORT', '8000')
 
 # Set up Django settings
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangoProject.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 # Run the server

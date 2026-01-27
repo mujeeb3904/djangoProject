@@ -9,7 +9,17 @@ SECRET_KEY = settings.SECRET_KEY
 PUBLIC_ENDPOINTS = [
     'register_user',
     'login_user',
-    'get_blogs',  # If you want blogs to be publicly readable
+    'get_blogs',
+]
+
+# Define public URL patterns that don't require authentication
+PUBLIC_URL_PATTERNS = [
+    '/',
+    '/admin/',
+    '/static/',
+    '/user/register/',
+    '/user/login/',
+    '/blogs/getBlogs/',
 ]
 
 def _extract_token(auth_header: str):
@@ -29,18 +39,20 @@ class JWTAuthenticationMiddleware:
         request.jwt_payload = None
         request.jwt_user_id = None
         
-        # Skip authentication for public endpoints
+        # Skip authentication for public URL patterns
+        for pattern in PUBLIC_URL_PATTERNS:
+            if request.path.startswith(pattern):
+                return self.get_response(request)
+        
+        # Skip authentication for public endpoints by URL name
         try:
             url_name = resolve(request.path_info).url_name
             if url_name in PUBLIC_ENDPOINTS:
                 return self.get_response(request)
         except:
             pass
-        
-        # Skip authentication for admin and static files
-        if request.path.startswith('/admin/') or request.path.startswith('/static/'):
-            return self.get_response(request)
 
+        # Extract and validate JWT token
         token = _extract_token(request.headers.get("Authorization"))
         if not token:
             return JsonResponse({'error': 'Authorization header missing or invalid format'}, status=401)

@@ -46,7 +46,7 @@ MIDDLEWARE = [
 
 ]
 
-ROOT_URLCONF = "djangoProject.urls"
+ROOT_URLCONF = "config.urls"
 
 # Templates
 TEMPLATES = [
@@ -64,7 +64,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "djangoProject.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 try:
